@@ -1,0 +1,239 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="wIdth=device-wIdth" />
+    <title>Заказы</title>
+    <link rel="stylesheet" href="http://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap-theme.min.css">
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h2>Список заказов</h2>
+        <form name="orderForm">
+            <input type="hIdden" name="orderId" value="0" />
+            <div class="form-group">
+                <label for="fioWorker">Сотрудник:</label>
+                <select Id="workerId" name="workerId"></select>
+            </div>
+            <div class="form-group">
+                <label for="model">Автомобиль:</label>
+                <select Id="carId" name="carId"></select>
+            </div>
+            <div class="form-group">
+                <label for="dateReceipt">Дата поступления:</label>
+                <input class="form-control" name="dateReceipt" Id="dateReceipt" />
+            </div>
+            <div class="form-group">
+                <label for="dateCompletion">Дата выполнения:</label>
+                <input class="form-control" name="dateCompletion" Id="dateCompletion" />
+            </div>
+            <div class="panel-body">
+                <button type="submit" class="btn btn-sm btn-primary">Сохранить</button>
+                <a Id="reset" class="btn btn-sm btn-primary">Сбросить</a>
+            </div>
+        </form>
+
+
+        <table class="table table-condensed table-striped table-bordered">
+            <thead>
+                <tr>
+                    <th>Код</th>
+                    <th>Сотрудник</th>
+                    <th>Автомобиль</th>
+                    <th>Дата поступления</th>
+                    <th>Дата выполнения</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+    <script>
+        // Получение всех операций
+        function GetOrders() {
+            
+            $.ajax({
+                url: '/api/orders',
+                type: 'GET',
+                contentType: "application/json",
+                success: function (orders) {
+                    //alert("");
+                    //console.log(orders);
+                    var rows = "";
+                    $.each(orders, function (index, order) {
+                        // добавляем полученные элементы в таблицу
+                        alert("");
+                        rows += row(order);
+                    })
+                    $("table tbody").append(rows);
+                    
+                }
+            });
+        }
+        // Получение одной операции
+        function Getorder(id) {
+            $.ajax({
+                url: '/api/orders/' + id,
+                method: 'GET',
+                contentType: "application/json",
+                success: function (order) {
+                    var form = document.forms["orderForm"];
+                    form.elements["orderID"].value = order.orderID;
+                    form.elements["carID"].selectedIndex = order.carId;
+                    form.elements["workerId"].selectedIndex = order.workerId;
+                    form.elements["dateReceipt"].value = order.dateReceipt.substring(0, 10);
+                    form.elements["dateCompletion"].value = order.dateCompletion.substring(0, 10);
+                }
+            });
+        }
+        // Добавление операции
+        function CreateOrders(carId, workerId, dateReceipt, dateCompletion) {
+            $.ajax({
+                url: "/api/orders",
+                contentType: "application/json",
+                method: "POST",
+                data: JSON.stringify({
+                    carId: carId,
+                    workerId: workerId,
+                    dateReceipt: dateReceipt,
+                    dateCompletion: dateCompletion
+                }),
+                success: function (order) {
+                    reset();
+                    var form = document.forms["orderForm"];
+                    order.model = form.elements["carId"].options[carId].text;
+                    order.fioWorker = form.elements["workerId"].options[workerId].text;
+                    $("table tbody").append(row(order));
+                }
+            })
+        }
+        // Изменение операции
+        function EditOrders(orderID, carId, workerId, dateReceipt, dateCompletion) {
+            $.ajax({
+                url: "/api/orders",
+                contentType: "application/json",
+                method: "PUT",
+                data: JSON.stringify({
+                    orderID: orderID,
+                    carId: carId,
+                    workerId: workerId,
+                    dateReceipt: dateReceipt,
+                    dateCompletion: dateCompletion
+                }),
+                success: function (order) {
+                    reset();
+                    var form = document.forms["orderForm"];
+                    order.model = form.elements["carId"].options[CarId].text;
+                    order.fioWorker = form.elements["workerId"].options[WorkerId].text;
+                    $("tr[data-rowid='" + order.orderID + "']").replaceWith(row(order));
+                }
+            })
+        }
+        // сброс формы
+        function reset() {
+            var form = document.forms["orderForm"];
+            form.reset();
+            form.elements["orderId"].value = 0;
+        }
+        // Удаление операции
+        function Deleteoperation(id) {
+            $.ajax({
+                url: "api/orders/" + id,
+                contentType: "application/json",
+                method: "DELETE",
+                success: function (order) {
+                    $("tr[data-rowid='" + order.orderID + "']").remove();
+                }
+            })
+        }
+        // создание строки для таблицы
+        var row = function (order) {
+            return "<tr data-rowid='" + order.orderID + "'>" +
+                "<td>" + order.model + "</td>" +
+                "<td>" + order.fioWorker + "</td>" +
+                "<td>" + order.dateReceipt.substring(0, 10) + "</td>" +
+                "<td>" + order.dateCompletion.substring(0, 10) + "</td>" +
+                "<td><a class='editLink' data-id='" + operation.orderID + "'>Изменить</a> | " +
+                "<a class='removeLink' data-id='" + operation.orderID + "'>Удалить</a></td></tr>";
+        }
+        // Получение списка видов топлива
+        function GetCars() {
+            var listItems = "";
+            $.ajax({
+                url: '/api/Orders/Cars',
+                type: 'GET',
+                contentType: "application/json",
+                success: function (cars) {
+                    listItems = listItems + "<option value=0 selected>(выбор)</option>";
+                    $.each(cars, function (index, car) {
+                        listItems = listItems + "<option value='" + car.carId + "'>" + car.model + "</option>";
+                    });
+                    $("#carId").html(listItems);
+                }
+            });
+        }
+        // Получение списка емкостей
+        function GetWorkers() {
+            var listItems = "";
+            $.ajax({
+                url: '/api/orders/workers',
+                type: 'GET',
+                contentType: "application/json",
+                success: function (workers) {
+                    listItems = listItems + "<option value=0 selected>(выбор)</option>";
+                    $.each(workers, function (index, worker) {
+                        listItems = listItems + "<option value='" + worker.workerId + "'>" + worker.fioWorker + "</option>";
+                    });
+                    $("#workerId").html(listItems);
+                }
+            });
+        }
+
+
+        // сброс значений формы
+        $("#reset").click(function (e) {
+            e.preventDefault();
+            reset();
+        })
+        // отправка формы
+        $("form").submit(function (e) {
+            e.preventDefault();
+            var orderID = this.elements["orderId"].value;
+            var carID = this.elements["carId"].selectedIndex;
+            var workerID = this.elements["workerId"].selectedIndex;
+            var dateReceipt = this.elements["dateReceipt"].value;
+            var dateCompletion = this.elements["dateCompletion"].value;
+            if (orderID == 0)
+                CreateOrders(carID, workerID, dateReceipt, dateCompletion);
+            else
+                EditOrders(orderID, carID, workerID, dateReceipt, dateCompletion);
+        });
+        // нажатие на ссылку Изменить
+        $("body").on("click", ".editLink", function () {
+            var id = $(this).data("id");
+            Getorder(id);
+        })
+        // нажатие на ссылку Удалить
+        $("body").on("click", ".removeLink", function () {
+            var id = $(this).data("id");
+            Deleteoperation(id);
+        })
+        // загрузка данных для таблицы и ее формирование
+        //Getorder(1);
+        //GetWorkers();
+        GetOrders();
+        //alert ("");
+        GetCars();
+        GetWorkers();
+        
+        //ввод даты с использованием специального окна
+        $(document).ready(function () {
+            $("#dateReceipt", "dateCompletion").datepicker({ dateFormat: "yy-mm-dd" });
+        });
+    </script>
+</body>
+</html>
